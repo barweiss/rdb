@@ -1,0 +1,12 @@
+syntax = "proto3";
+import "google/protobuf/any.proto";
+package rdb.relational;
+
+service Rdb { rpc Run(RunRequest) returns (stream RunResponse); }
+
+message RunRequest {
+  string sql = 1;
+  map<string, google.protobuf.Any> parameters = 2;
+}
+
+message RunResponse { repeated google.protobuf.Any row = 1; }
