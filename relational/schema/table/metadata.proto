@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+package rdb.relational.table;
+
+message Metadata {
+  // The name of the table.
+  string name = 1;
+
+  // A message descriptor representing each row of the table.
+  google.protobuf.DescriptorProto message_descriptor = 2;
+}
