@@ -4,5 +4,5 @@ pub enum Value {
     Float(f64),
     Bit(bool),
     String(String),
-    Buffer([u8]),
+    Buffer(Vec<u8>),
 }

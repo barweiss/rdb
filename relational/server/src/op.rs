@@ -1,11 +1,5 @@
 use crate::row::Row;
 
-type RowIter = Iter<Item = Row>;
-
 pub trait Op {
-    execute(&self) -> Iter<Item = Row>
-}
-
-struct OpTree {
-    root: OpNode,
+    fn execute(&self) -> impl Iterator<Item = dyn Row>;
 }

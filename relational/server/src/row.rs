@@ -2,71 +2,61 @@ use std::{collections::HashMap, ops::Index};
 
 use crate::value::Value;
 
-pub trait Row<'a> {
-    fn value(self, name: &str) -> Option<&'a Value>;
-    fn value_at(self, index: usize) -> &'a Value;
-    fn column_name(self, index: usize) -> Option<&'a str>;
+pub trait Row {
+    fn value<'s>(&'s self, name: &str) -> Option<&'s Value>;
+    fn value_at<'s>(&'s self, index: usize) -> &'s Value;
+    fn column_name<'s>(&'s self, index: usize) -> &'s str;
 }
 
-impl<'a> Index<usize> for dyn Row<'a> {
+impl Index<usize> for dyn Row {
     type Output = Value;
 
     fn index(&self, index: usize) -> &Self::Output {
-        self.value(index)
+        self.value_at(index)
     }
 }
 
-impl<'a> Index<&str> for dyn Row<'a> {
+impl Index<&str> for dyn Row {
     type Output = Value;
 
     fn index(&self, index: &str) -> &Self::Output {
         self.value(index)
+            .expect(format!("row does not have column {index}").as_str())
     }
 }
 
 pub struct MemRow<'a> {
-    values_by_name: HashMap<&'a str, Value>,
     column_order: Vec<String>,
+    values_by_name: HashMap<&str, Value>,
 }
 
-impl Row for MemRow {
-    fn value(self, index: usize) -> &Value {
+impl Row for MemRow<'_> {
+    fn value_at<'s>(&'s self, index: usize) -> &'s Value {
         self.value(self.column_name(index))
+            .expect("result of column_name must point to a valid value")
     }
 
-    fn value(self, name: &str) -> Option<&Value> {
-        self.values_by_name.get(value)
+    fn value<'s>(&'s self, name: &str) -> Option<&'s Value> {
+        self.values_by_name.get(name)
     }
 
-    fn column_name(self, index: usize) -> Option<&str> {
-        self.column_order[index]
+    fn column_name<'s>(&'s self, index: usize) -> &'s str {
+        self.column_order[index].as_str()
     }
 }
 
-impl MemRow {
-    fn from_map(values_by_name: HashMap<&str, Value>, column_order: Vec<String>) -> MemRow {
-        if values_by_name.len() != column_order.len() {
-            panic!(
-                "mem row length mismatch: {} values and {} columns",
-                values_by_name.len(),
-                column_order.len()
-            )
-        }
-
-        MemRow {
-            values_by_name,
-            column_order,
-        }
-    }
-
-    fn from_pairs(values: &mut [(String, Value)]) {
+impl<'a> MemRow<'a> {
+    fn from_pairs(values: impl ExactSizeIterator<Item = (String, Value)>) -> Self {
         let mut values_by_name = HashMap::with_capacity(values.len());
         let mut column_order = Vec::with_capacity(values.len());
         for (name, value) in values {
             column_order.push(name);
-            values_by_name.insert(column_order.last().unwrap().as_str(), v)
+            values_by_name.insert(name.as_str(), value);
         }
 
-        Self::from_map(values_by_name, column_order)
+        Self {
+            values_by_name,
+            column_order,
+        }
     }
 }

@@ -5,6 +5,8 @@ mod row;
 mod value;
 
 use log::trace;
+use op::Op;
+use plan::plan_statement;
 use sqlparser::ast::TableFactor;
 use sqlparser::dialect::GenericDialect;
 use sqlparser::parser::Parser;
@@ -16,13 +18,9 @@ use rdb::relational::{RunRequest, RunResponse};
 
 #[derive(Debug)]
 pub struct Impl {
-    planner: dyn Planner,
 }
 
 impl Impl {
-    fn with_planner(planner: dyn Planner) -> Self {
-        Impl { planner }
-    }
 }
 
 #[tonic::async_trait]
@@ -39,22 +37,8 @@ impl Rdb for Impl {
             .map_err(|err| Status::invalid_argument(err.to_string()))?;
 
         for statement in ast {
-            match statement {
-                sqlparser::ast::Statement::Query(query) => match *query.body {
-                    sqlparser::ast::SetExpr::Select(select) => {
-                        for from_item in select.from {
-                            match from_item.relation {
-                                TableFactor::Table { name, alias, .. } => {}
-                                _ => return Err(Status::unimplemented("unsupported from term")),
-                            }
-                        }
-                    }
-                    _ => return Err(Status::unimplemented("unsupported query body")),
-                },
-                _ => {
-                    return Err(Status::unimplemented("unsupported statement type"));
-                }
-            }
+            let op = plan_statement(&statement);
+            op.execute();
         }
 
         Err(Status::unimplemented("not yet implemented"))
